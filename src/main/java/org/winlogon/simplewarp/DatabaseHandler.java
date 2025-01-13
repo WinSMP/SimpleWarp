@@ -1,16 +1,17 @@
 package org.winlogon.simplewarp;
 
+import com.github.walker84837.JResult.Result;
+import com.github.walker84837.JResult.ResultUtils;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Handles the connection to the SQLite 
+ * Handles the connection to the SQLite
  * database, which stores the warps.
- * 
+ *
  * @author walker84837
  */
 public class DatabaseHandler {
@@ -23,55 +24,64 @@ public class DatabaseHandler {
 
     /**
      * Connects to the SQLite database.
-     * 
-     * @return void
+     *
+     * @return Result<Void, Exception>
      */
-    public void connectToDatabase() throws SQLException {
-        String url = "jdbc:sqlite:" + plugin.getDataFolder() + "/warps.db";
-        connection = DriverManager.getConnection(url);
-        createTableIfNotExists();
+    public Result<Void, Exception> connectToDatabase() {
+        return ResultUtils.tryCatch(() -> {
+            String url = "jdbc:sqlite:" + plugin.getDataFolder() + "/warps.db";
+            connection = DriverManager.getConnection(url);
+            createTableIfNotExists().unwrap();
+            return null;
+        });
     }
 
     /**
      * Creates the warps table if it doesn't exist.
-     * 
-     * @return void
+     *
+     * @return Result<Void, Exception>
      */
-    private void createTableIfNotExists() throws SQLException {
-        String sql = "CREATE TABLE IF NOT EXISTS warps (" +
-                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                     "name TEXT UNIQUE NOT NULL, " +
-                     "x REAL NOT NULL, " +
-                     "y REAL NOT NULL, " +
-                     "z REAL NOT NULL, " +
-                     "world TEXT NOT NULL)";
-        try (Statement stmt = connection.createStatement()) {
-            stmt.execute(sql);
-        }
+    private Result<Void, Exception> createTableIfNotExists() {
+        return ResultUtils.tryCatch(() -> {
+            String sql = "CREATE TABLE IF NOT EXISTS warps (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "name TEXT UNIQUE NOT NULL, " +
+                    "x REAL NOT NULL, " +
+                    "y REAL NOT NULL, " +
+                    "z REAL NOT NULL, " +
+                    "world TEXT NOT NULL)";
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute(sql);
+            }
+            return null;
+        });
     }
 
     /**
      * Retrieves a connection to the SQLite database.
-     * 
-     * @return Connection The connection to the database.
-     * @throws SQLException
+     *
+     * @return Result<Connection, Exception>
      */
-    public Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            connectToDatabase();
-        }
-        return connection;
+    public Result<Connection, Exception> getConnection() {
+        return ResultUtils.tryCatch(() -> {
+            if (connection == null || connection.isClosed()) {
+                connectToDatabase().unwrap();
+            }
+            return connection;
+        });
     }
 
     /**
      * Closes the connection to the SQLite database.
-     * 
-     * @return void
-     * @throws SQLException
+     *
+     * @return Result<Void, Exception>
      */
-    public void closeConnection() throws SQLException {
-        if (connection != null && !connection.isClosed()) {
-            connection.close();
-        }
+    public Result<Void, Exception> closeConnection() {
+        return ResultUtils.tryCatch(() -> {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+            return null;
+        });
     }
 }
