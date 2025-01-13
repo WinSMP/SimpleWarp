@@ -3,6 +3,7 @@ name: ${NAME}
 version: "${VERSION}"
 api-version: "1.21.1"
 author: walker84837
+folia-supported: true
 description: SimpleWarp - A simple /warp plugin
 commands:
   warp:
