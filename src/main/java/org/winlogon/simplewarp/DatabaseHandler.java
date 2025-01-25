@@ -9,9 +9,8 @@ import java.sql.DriverManager;
 import java.sql.Statement;
 
 /**
- * Handles the connection to the SQLite
- * database, which stores the warps.
- *
+ * Handles the connection to the SQLite database, which stores the warps.
+
  * @author walker84837
  */
 public class DatabaseHandler {
@@ -24,7 +23,7 @@ public class DatabaseHandler {
 
     /**
      * Connects to the SQLite database.
-     *
+
      * @return Result<Void, Exception>
      */
     public Result<Void, Exception> connectToDatabase() {
@@ -38,7 +37,7 @@ public class DatabaseHandler {
 
     /**
      * Creates the warps table if it doesn't exist.
-     *
+
      * @return Result<Void, Exception>
      */
     private Result<Void, Exception> createTableIfNotExists() {
@@ -59,7 +58,7 @@ public class DatabaseHandler {
 
     /**
      * Retrieves a connection to the SQLite database.
-     *
+
      * @return Result<Connection, Exception>
      */
     public Result<Connection, Exception> getConnection() {
@@ -73,7 +72,7 @@ public class DatabaseHandler {
 
     /**
      * Closes the connection to the SQLite database.
-     *
+
      * @return Result<Void, Exception>
      */
     public Result<Void, Exception> closeConnection() {
