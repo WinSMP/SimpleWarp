@@ -72,7 +72,7 @@ public class WarpPlugin extends JavaPlugin {
 
         if (args.length < 1) {
             player.sendMessage(
-                cc.format("<yellow>Usage: <dark_aqua>/warp <new|remove|edit|teleport> [arguments]")
+                cc.format("<gray>Usage: <dark_aqua>/warp <dark_green><new|remove|edit|teleport> <dark_purple>[arguments]")
             );
             return true;
         }
@@ -103,7 +103,7 @@ public class WarpPlugin extends JavaPlugin {
         }
 
         if (args.length < 2) {
-            player.sendMessage(cc.format("<yellow>Usage: <dark_aqua>/warp new [name] {[x] [y] [z]}"));
+            player.sendMessage(cc.format("<gray>Usage: <dark_aqua>/warp new [name] {[x] [y] [z]}"));
             return;
         }
 
@@ -157,7 +157,7 @@ public class WarpPlugin extends JavaPlugin {
         }
 
         if (args.length < 2) {
-            player.sendMessage(cc.format("<yellow>Usage: <dark_aqua>/warp remove [name]"));
+            player.sendMessage(cc.format("<gray>Usage: <dark_aqua>/warp remove [name]"));
             return;
         }
 
@@ -197,7 +197,7 @@ public class WarpPlugin extends JavaPlugin {
         }
 
         if (args.length < 2) {
-            player.sendMessage(cc.format("<gray>Usage: <aqua>/warp edit <dark_aqua>[name] <dark_green>{[x] [y] [z]}"));
+            player.sendMessage(cc.format("<gray>Usage: <dark_aqua>/warp edit <dark_green>[name] <dark_purple>{[x] [y] [z]}"));
             return;
         }
 
