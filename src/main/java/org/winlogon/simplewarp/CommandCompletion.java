@@ -42,7 +42,7 @@ public class CommandCompletion implements TabCompleter {
                     suggestions.add(rs.getString("name"));
                 }
             } catch (SQLException e) {
-                sender.sendMessage(ChatColor.RED + "Failed to fetch warp names for tab completion:" + ChatColor.GRAY + e.getMessage());
+                sender.sendMessage("<red>Failed to fetch warp names for tab completion: <gray>" + e.getMessage());
             }
         }
         return suggestions;

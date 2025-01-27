@@ -1,43 +1,32 @@
 package org.winlogon.simplewarp;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.minimessage.tag.standard.StandardTags;
+
 /**
  * A class that contains color codes and text style codes.
  */
 public class ChatColor {
+    private final TagResolver tagsResolver = TagResolver.builder()
+        .resolver(StandardTags.color())
+        .resolver(StandardTags.decorations())
+        .resolver(StandardTags.gradient())
+        .resolver(StandardTags.rainbow())
+        .resolver(StandardTags.clickEvent())
+        .resolver(StandardTags.hoverEvent())
+        .resolver(StandardTags.transition())
+        .build();
+
+    private final MiniMessage miniMessage = MiniMessage.builder().tags(tagsResolver).build();
+
     /**
-     * Prevents instantiation of this class.
+     * Formats a string containing MiniMessage formatting into a Component.
      * 
-     * @throws UnsupportedOperationException
+     * @returns Component The formatted message
      */
-    private ChatColor() throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("Utility class");
+    public Component format(final String message) {
+        return miniMessage.deserialize(message);
     }
-
-    // Color codes
-    public static final String RED = "§c";
-    public static final String GREEN = "§a";
-    public static final String YELLOW = "§e";
-    public static final String AQUA = "§b";
-    public static final String GRAY = "§7";
-    public static final String BLUE = "§9";
-    public static final String LIGHT_PURPLE = "§d";
-    public static final String WHITE = "§f";
-    public static final String BLACK = "§0";
-    public static final String GOLD = "§6";
-    public static final String DARK_GRAY = "§8";
-    public static final String DARK_BLUE = "§1";
-    public static final String DARK_GREEN = "§2";
-    public static final String DARK_AQUA = "§3";
-    public static final String DARK_RED = "§4";
-    public static final String DARK_PURPLE = "§5";
-
-    // Reset code
-    public static final String RESET = "§r";
-
-    // Text style codes
-    public static final String BOLD = "§l";
-    public static final String ITALIC = "§o";
-    public static final String UNDERLINE = "§n";
-    public static final String STRIKETHROUGH = "§m";
-    public static final String OBFUSCATED = "§k";
 }
