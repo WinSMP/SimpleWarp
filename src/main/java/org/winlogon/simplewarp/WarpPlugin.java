@@ -249,7 +249,7 @@ public class WarpPlugin extends JavaPlugin {
      */
     private void teleport(Player player, String[] args) {
         if (args.length < 2) {
-            player.sendMessage("<gray>Usage: <dark_aqua>/warp teleport [name]");
+            player.sendMessage(cc.format("<gray>Usage: <dark_aqua>/warp teleport [name]"));
             return;
         }
 
