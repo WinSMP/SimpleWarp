@@ -72,7 +72,7 @@ dependencies {
     implementation("io.papermc:paperlib:1.0.8")
     implementation("com.github.walker84837:JResult:1.1.0")
     testImplementation("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.12.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.12.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.0")
 }
 
