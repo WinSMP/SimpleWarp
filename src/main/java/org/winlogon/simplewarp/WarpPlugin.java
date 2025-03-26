@@ -23,6 +23,7 @@ public class WarpPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        cc = new ChatColor();
 
         databaseHandler = new DatabaseHandler(this);
 
@@ -32,8 +33,6 @@ public class WarpPlugin extends JavaPlugin {
             getServer().getPluginManager().disablePlugin(this);
             return;
         });
-
-        cc = new ChatColor();
 
         registerCommands();
     }
@@ -47,7 +46,7 @@ public class WarpPlugin extends JavaPlugin {
         PluginCommand warpCommand = getCommand("warp");
         if (warpCommand != null) {
             warpCommand.setExecutor(this::onCommand);
-            warpCommand.setTabCompleter(new CommandCompletion(databaseHandler));
+            warpCommand.setTabCompleter(new CommandCompletion(databaseHandler, this.cc));
         }
     }
 
