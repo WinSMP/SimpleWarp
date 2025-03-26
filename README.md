@@ -1,6 +1,6 @@
 # SimpleWarp
 
-SimpleWarp is a Minecraft that allows players to create, remove, edit, and teleport to custom warps.
+SimpleWarp is a Paper plugin that allows players to create, remove, edit, and teleport to custom warps.
 
 ## Features
 
