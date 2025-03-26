@@ -99,7 +99,7 @@ public class WarpPlugin extends JavaPlugin {
                 stmt.setString(5, location.getWorld().getName());
                 stmt.executeUpdate();
                 
-                player.sendMessage(cc.format("<gray>Warp %s created".formatted(args[1])));
+                player.sendMessage(cc.format("<gray>Warp <dark_aqua>%s<gray> created".formatted(args[1])));
             } catch (SQLException ex) {
                 player.sendMessage(cc.format("<red>Error: " + ex.getMessage()));
             }
@@ -119,7 +119,7 @@ public class WarpPlugin extends JavaPlugin {
             stmt -> stmt.setString(1, args[1]),
             rows -> player.sendMessage(cc.format(rows == 0 ? 
                 "<red>Warp not found: %s".formatted(args[1]) : 
-                "<gray>Warp %s removed".formatted(args[1]))
+                "<gray>Warp <dark_aqua>%s<gray> removed".formatted(args[1]))
         ));
     }
 
@@ -144,7 +144,7 @@ public class WarpPlugin extends JavaPlugin {
             },
             rows -> player.sendMessage(cc.format(rows == 0 ?
                 "<red>Warp not found: %s".formatted(args[1]) :
-                "<gray>Warp %s updated".formatted(args[1])))
+                "<gray>Warp <dark_aqua>%s<gray> updated".formatted(args[1])))
         );
     }
 
@@ -181,7 +181,7 @@ public class WarpPlugin extends JavaPlugin {
                 if (IS_FOLIA) player.teleportAsync(dest);
                 else player.teleport(dest);
                 
-                player.sendMessage(cc.format("<gray>Teleported to %s".formatted(args[1])));
+                player.sendMessage(cc.format("<gray>Teleported to <dark_aqua>%s".formatted(args[1])));
             } catch (SQLException ex) {
                 player.sendMessage(cc.format("<red>Error: " + ex.getMessage()));
             }
