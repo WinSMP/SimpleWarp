@@ -9,6 +9,7 @@ bin/
 # Misc settings
 .settings/
 .classpath
+.factorypath
 .project
 
 # Compiled class file
