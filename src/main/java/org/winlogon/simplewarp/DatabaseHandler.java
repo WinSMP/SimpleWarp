@@ -42,13 +42,15 @@ public class DatabaseHandler {
      */
     private Result<Void, Exception> createTableIfNotExists() {
         return ResultUtils.tryCatch(() -> {
-            String sql = "CREATE TABLE IF NOT EXISTS warps (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "name TEXT UNIQUE NOT NULL, " +
-                    "x REAL NOT NULL, " +
-                    "y REAL NOT NULL, " +
-                    "z REAL NOT NULL, " +
-                    "world TEXT NOT NULL)";
+            String sql = """
+                CREATE TABLE IF NOT EXISTS warps (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    x REAL NOT NULL,
+                    y REAL NOT NULL,
+                    z REAL NOT NULL,
+                    world TEXT NOT NULL)
+                """;
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute(sql);
             }
