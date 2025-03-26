@@ -64,16 +64,19 @@ repositories {
         }
     }
 
+    maven(url = "https://repo.codemc.org/repository/maven-public/")
+
     mavenCentral()
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-    implementation("io.papermc:paperlib:1.0.8")
+    compileOnly("dev.jorel:commandapi-annotations:9.7.0")
     implementation("com.github.walker84837:JResult:1.1.0")
     testImplementation("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.12.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.12.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.1")
+    annotationProcessor("dev.jorel:commandapi-annotations:9.7.0")
 }
 
 tasks.test {
@@ -81,7 +84,7 @@ tasks.test {
 }
 
 tasks.processResources {
-    filesMatching("**/plugin.yml") {
+    filesMatching("**/paper-plugin.yml") {
         expand(
             "NAME" to rootProject.name,
             "VERSION" to version,
@@ -93,7 +96,12 @@ tasks.processResources {
 tasks.shadowJar {
     archiveClassifier.set("")
     relocate("io.papermc.lib", "shadow.io.papermc.paperlib")
-    minimize()
+    
+    // Preserve CommandAPI and JResult packages
+    minimize {
+        // exclude(dependency("dev.jorel:commandapi-bukkit-shade:.*"))
+        // exclude(dependency("com.github.walker84837:JResult:.*"))
+    }
 }
 
 // Disable jar and replace with shadowJar
