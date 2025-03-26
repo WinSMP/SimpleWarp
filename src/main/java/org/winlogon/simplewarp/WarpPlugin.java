@@ -4,70 +4,63 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.github.walker84837.JResult.Result;
-import com.github.walker84837.JResult.ResultUtils;
-
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.function.IntConsumer;
 
 public class WarpPlugin extends JavaPlugin {
+    private static final boolean IS_FOLIA = checkFolia();
     private DatabaseHandler databaseHandler;
     private ChatColor cc;
+
+    private static boolean checkFolia() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         cc = new ChatColor();
-
         databaseHandler = new DatabaseHandler(this);
 
-        var result = databaseHandler.connectToDatabase();
-        result.ifErr(e -> {
+        databaseHandler.connectToDatabase().ifErr(e -> {
             getLogger().severe("Failed to initialize database: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
-            return;
         });
 
         registerCommands();
     }
 
-    /** 
-     * Registers the commands for this plugin.
-     *
-     * @return void
-     */
     private void registerCommands() {
-        PluginCommand warpCommand = getCommand("warp");
+        var warpCommand = getCommand("warp");
         if (warpCommand != null) {
             warpCommand.setExecutor(this::onCommand);
-            warpCommand.setTabCompleter(new CommandCompletion(databaseHandler, this.cc));
+            warpCommand.setTabCompleter(new CommandCompletion(databaseHandler, cc));
         }
     }
 
     @Override
     public void onDisable() {
-        Result<Void, Exception> result = databaseHandler.closeConnection();
-        result.ifErr(e -> {
-            getLogger().severe("Failed to close database connection: " + e.getMessage());
-        });
+        var result = databaseHandler.closeConnection();
+        result.ifErr(e -> getLogger().severe("Failed to close connection: " + e.getMessage()));
     }
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(cc.format("<red>This command can only be used by players."));
+            sender.sendMessage(cc.format("<red>Players only command"));
             return true;
         }
 
         if (args.length < 1) {
-            player.sendMessage(
-                cc.format("<gray>Usage: <dark_aqua>/warp <dark_green><new|remove|edit|teleport> <dark_purple>[arguments]")
-            );
+            player.sendMessage(cc.format("<gray>Usage: /warp <new|remove|edit|teleport> [args]"));
             return true;
         }
 
@@ -77,254 +70,171 @@ public class WarpPlugin extends JavaPlugin {
             case "remove" -> removeWarp(player, args);
             case "edit" -> editWarp(player, args);
             case "teleport", "tp" -> teleport(player, args);
-            default -> player.sendMessage(cc.format("<red>Invalid subcommand. <gray>Use: <dark_aqua>/warp <new|remove|edit|teleport>"));
+            default -> player.sendMessage(cc.format("<red>Invalid command"));
         }
-
         return true;
     }
 
-    /**
-     * Creates a new warp.
-     *
-     * @param player The player who executed the command.
-     * @param args The command arguments.
-     * @return void
-     */
     private void newWarp(Player player, String[] args) {
-        if (!player.hasPermission("warp.admin")) {
-            player.sendMessage(cc.format("<red>You do not have permission to use this command."));
-            return;
-        }
-
+        if (!checkPermission(player)) return;
+        
         if (args.length < 2) {
-            player.sendMessage(cc.format("<gray>Usage: <dark_aqua>/warp new [name] {[x] [y] [z]}"));
+            player.sendMessage(cc.format("<gray>Usage: /warp new [name] [coords?]"));
             return;
         }
-
-        String name = args[1];
-        Location location = player.getLocation();
-
-        if (args.length >= 5) {
-            try {
-                location.setX(Integer.parseInt(args[2]));
-                location.setY(Integer.parseInt(args[3]));
-                location.setZ(Integer.parseInt(args[4]));
-            } catch (NumberFormatException e) {
-                player.sendMessage(cc.format("<red>Coordinates must be valid integers."));
-                return;
-            }
-        }
-
-        Result<Connection, Exception> conn = databaseHandler.getConnection();
-        conn.ifErr(e -> {
-            player.sendMessage(cc.format("<red>Failed to create warp: <gray>" + e.getMessage() + " <red>(connection to database failed)"));
-        });
-        try (Connection connection = conn.unwrap()) {
-            var sql = "INSERT INTO warps (name, x, y, z, world) VALUES (?, ?, ?, ?, ?)";
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-                stmt.setString(1, name);
-                stmt.setInt(2, (int) Math.round(location.getX()));
-                stmt.setInt(3, (int) Math.round(location.getY()));
-                stmt.setInt(4, (int) Math.round(location.getZ()));
+    
+        var location = extractLocation(player, args, 2);
+        if (location == null) return;
+    
+        var result = databaseHandler.getConnection();
+        result.ifErr(e -> sendConnectionError(player, e));
+        result.ifOk(conn -> {
+            try (var stmt = conn.prepareStatement(
+                "INSERT INTO warps (name, x, y, z, world) VALUES (?, ?, ?, ?, ?)")) {
+                
+                stmt.setString(1, args[1]);
+                stmt.setDouble(2, location.getX());
+                stmt.setDouble(3, location.getY());
+                stmt.setDouble(4, location.getZ());
                 stmt.setString(5, location.getWorld().getName());
                 stmt.executeUpdate();
+                
+                player.sendMessage(cc.format("<gray>Warp %s created".formatted(args[1])));
+            } catch (SQLException ex) {
+                player.sendMessage(cc.format("<red>Error: " + ex.getMessage()));
             }
-
-            player.sendMessage(
-                cc.format(
-                    """
-                    <gray>Warp <dark_aqua>%s<gray> created at <dark_green>%s<gray> in world <dark_purple>%s<gray>.
-                    """
-                    .formatted(name, location.toVector(), location.getWorld().getName())
-                )
-            );
-        } catch (SQLException e) {
-            player.sendMessage(cc.format("<red>Failed to create warp: <gray>" + e.getMessage()));
-        }
+        });
     }
 
-    /**
-     * Removes a warp.
-     *
-     * @param player The player who executed the command.
-     * @param args The command arguments.
-     * @return void
-     */
     private void removeWarp(Player player, String[] args) {
-        if (!player.hasPermission("warp.admin")) {
-            player.sendMessage(cc.format("<red>You do not have permission to use this command."));
-            return;
-        }
-
+        if (!checkPermission(player)) return;
+        
         if (args.length < 2) {
-            player.sendMessage(cc.format("<gray>Usage: <dark_aqua>/warp remove [name]"));
+            player.sendMessage(cc.format("<gray>Usage: /warp remove [name]"));
             return;
         }
-
-        var name = args[1];
-
-        var conn = databaseHandler.getConnection();
-        conn.ifErr(e -> {
-            var msg = "<red>Failed to remove warp: <gray>" + e.getMessage() + " <red>(connection to database failed)";
-            player.sendMessage(cc.format(msg));
-        });
-        try (Connection connection = conn.unwrap()) {
-            var sql = "DELETE FROM warps WHERE name = ?";
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-                stmt.setString(1, name);
-                var rows = stmt.executeUpdate();
-                var msg = switch (rows) {
-                    case 0 -> "<red>No warp found with name <dark_aqua>" + name + "<red>.";
-                    default -> "<gray>Warp <dark_aqua>" + name + " <gray>removed.";
-                };
-                player.sendMessage(cc.format(msg));
-            }
-        } catch (SQLException e) {
-            player.sendMessage(cc.format("<red>Failed to remove warp: <gray>" + e.getMessage()));
-        }
+    
+        executeUpdate(player, 
+            "DELETE FROM warps WHERE name = ?", 
+            stmt -> stmt.setString(1, args[1]),
+            rows -> player.sendMessage(cc.format(rows == 0 ? 
+                "<red>Warp not found: %s".formatted(args[1]) : 
+                "<gray>Warp %s removed".formatted(args[1]))
+        ));
     }
 
-    /**
-     * Edits a warp.
-     * 
-     * @param player The player who executed the command.
-     * @param args The command arguments.
-     * @return void
-     */
     private void editWarp(Player player, String[] args) {
-        if (!player.hasPermission("warp.admin")) {
-            player.sendMessage(cc.format("<red>You do not have permission to use this command."));
-            return;
-        }
-
+        if (!checkPermission(player)) return;
+        
         if (args.length < 2) {
-            player.sendMessage(cc.format("<gray>Usage: <dark_aqua>/warp edit <dark_green>[name] <dark_purple>{[x] [y] [z]}"));
+            player.sendMessage(cc.format("<gray>Usage: /warp edit [name] [coords?]"));
             return;
         }
-
-        String name = args[1];
-        Location location = player.getLocation();
-
-        if (args.length >= 5) {
-            try {
-                location.setX(Integer.parseInt(args[2]));
-                location.setY(Integer.parseInt(args[3]));
-                location.setZ(Integer.parseInt(args[4]));
-            } catch (NumberFormatException e) {
-                player.sendMessage(cc.format("<red>Coordinates must be valid numbers."));
-                return;
-            }
-        }
-
-        var conn = databaseHandler.getConnection();
-        conn.ifErr(e -> {
-            player.sendMessage(cc.format("<red>Failed to edit warp: <dark_purple>" + e.getMessage() + "<red> (connection to database failed)"));
-            return;
-        });
-        try (Connection connection = conn.unwrap()) {
-            var sql = "UPDATE warps SET x = ?, y = ?, z = ? WHERE name = ?";
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+    
+        var location = extractLocation(player, args, 2);
+        if (location == null) return;
+    
+        executeUpdate(player,
+            "UPDATE warps SET x = ?, y = ?, z = ? WHERE name = ?",
+            stmt -> {
                 stmt.setDouble(1, location.getX());
                 stmt.setDouble(2, location.getY());
                 stmt.setDouble(3, location.getZ());
-                stmt.setString(4, name);
-
-                var rows = stmt.executeUpdate();
-                var message = switch (rows) {
-                    case 0 -> """
-                             <red>No warp found with name <gray>%s.
-                             """.formatted(name);
-                    default -> """
-                               <gray>Warp <dark_aqua>%s<gray> updated to <dark_green>%s<gray>.
-                               """.formatted(name, location.toVector());
-                };
-
-                player.sendMessage(cc.format(message));
-            }
-        } catch (SQLException e) {
-            player.sendMessage(cc.format("<red>Failed to edit warp: " + e.getMessage()));
-        }
+                stmt.setString(4, args[1]);
+            },
+            rows -> player.sendMessage(cc.format(rows == 0 ?
+                "<red>Warp not found: %s".formatted(args[1]) :
+                "<gray>Warp %s updated".formatted(args[1])))
+        );
     }
 
-    /**
-     * Teleports a player to a warp.
-     *
-     * @param player The player who executed the command.
-     * @param args The command arguments.
-     * @return void
-     */
     private void teleport(Player player, String[] args) {
         if (args.length < 2) {
-            player.sendMessage(cc.format("<gray>Usage: <dark_aqua>/warp teleport [name]"));
+            player.sendMessage(cc.format("<gray>Usage: /warp teleport [name]"));
             return;
         }
-
-        var name = args[1];
-        var conn = databaseHandler.getConnection();
-        var connection = conn.unwrap();
-        var sql = "SELECT x, y, z, world FROM warps WHERE name = ?";
-        teleportToWarp(player, name, connection, sql);
-    }
-
-    /**
-     * Teleports a player to a warp saved in the database.
-     *
-     * @param player The player who executed the command.
-     * @param name The name of the warp to teleport to.
-     * @param connection The database connection.
-     * @param sql The SQL query to execute.
-     * @return void
-     * @throws SQLException
-     */
-    private Result<Void, Exception> teleportToWarp(Player player, String name, Connection connection, String sql) {
-        return ResultUtils.tryCatch(() -> {
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-                stmt.setString(1, name);
+    
+        var connResult = databaseHandler.getConnection();
+        connResult.ifErr(e -> sendConnectionError(player, e));
+        connResult.ifOk(conn -> {
+            try (var stmt = conn.prepareStatement("SELECT * FROM warps WHERE name = ?")) {
+                stmt.setString(1, args[1]);
                 var rs = stmt.executeQuery();
-
-                if (!rs.next()) {
-                    player.sendMessage(cc.format("<red>No warp found with name <dark_aqua>" + name + "<red>."));
-                    return null;
-                }
-
-                var axes = new String[] { "x", "y", "z" };
-                var loc = new HashMap<String, Double>(axes.length);
                 
-                for (String axis : axes) {
-                    loc.put(axis, rs.getDouble(axis));
+                if (!rs.next()) {
+                    player.sendMessage(cc.format("<red>Warp not found: %s".formatted(args[1])));
+                    return;
                 }
-
+    
+                var x = rs.getDouble("x");
+                var y = rs.getDouble("y");
+                var z = rs.getDouble("z");
                 var worldName = rs.getString("world");
                 var world = Bukkit.getWorld(worldName);
-
+                
                 if (world == null) {
-                    player.sendMessage(
-                        cc.format(
-                            """
-                            <red>Warp <dark_aqua>%s<red> references an unknown world <dark_purple>%s<red>.
-                            """.formatted(name, worldName)
-                        )
-                    );
-                    return null;
+                    player.sendMessage(cc.format("<red>Invalid world for warp"));
+                    return;
                 }
-                var dest = new Location(world, loc.get("x"), loc.get("y"), loc.get("z"));
-                if (isFolia()) {
-                    player.teleportAsync(dest);
-                } else {
-                    player.teleport(dest);
-                }
-                player.sendMessage(cc.format("<gray>Teleported to warp <dark_aqua>" + name + "<gray>."));
+                
+                var dest = new Location(world, x, y, z);
+                if (IS_FOLIA) player.teleportAsync(dest);
+                else player.teleport(dest);
+                
+                player.sendMessage(cc.format("<gray>Teleported to %s".formatted(args[1])));
+            } catch (SQLException ex) {
+                player.sendMessage(cc.format("<red>Error: " + ex.getMessage()));
             }
-            return null;
         });
     }
 
-    private static boolean isFolia() {
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
-            return true;
-        } catch (ClassNotFoundException e) {
+    // Helper methods
+    private boolean checkPermission(Player player) {
+        if (!player.hasPermission("warp.admin")) {
+            player.sendMessage(cc.format("<red>No permission"));
             return false;
         }
+        return true;
+    }
+
+    private Location extractLocation(Player player, String[] args, int offset) {
+        var loc = player.getLocation();
+        if (args.length >= offset + 3) {
+            try {
+                return new Location(
+                    loc.getWorld(),
+                    Double.parseDouble(args[offset]),
+                    Double.parseDouble(args[offset+1]),
+                    Double.parseDouble(args[offset+2])
+                );
+            } catch (NumberFormatException e) {
+                player.sendMessage(cc.format("<red>Invalid coordinates"));
+                return null;
+            }
+        }
+        return loc;
+    }
+
+    private void executeUpdate(Player player, String sql, ThrowingConsumer<PreparedStatement> preparer, IntConsumer resultHandler) {
+        var connResult = databaseHandler.getConnection();
+        connResult.ifErr(e -> sendConnectionError(player, e));
+        connResult.ifOk(conn -> {
+            try (var stmt = conn.prepareStatement(sql)) {
+                preparer.accept(stmt);
+                int affectedRows = stmt.executeUpdate();
+                resultHandler.accept(affectedRows);
+            } catch (SQLException ex) {
+                player.sendMessage(cc.format("<red>Error: " + ex.getMessage()));
+            }
+        });
+    }
+
+    private void sendConnectionError(Player player, Exception e) {
+        player.sendMessage(cc.format("<red>Database error: " + e.getMessage()));
+    }
+
+    @FunctionalInterface
+    private interface ThrowingConsumer<T> {
+        void accept(T t) throws SQLException;
     }
 }
