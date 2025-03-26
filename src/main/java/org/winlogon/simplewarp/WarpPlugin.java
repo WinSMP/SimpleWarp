@@ -2,24 +2,19 @@ package org.winlogon.simplewarp;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.winlogon.simplewarp.ChatColor.*;
 
 import com.github.walker84837.JResult.Result;
 import com.github.walker84837.JResult.ResultUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.HashMap;
-import java.util.Arrays;
 
 public class WarpPlugin extends JavaPlugin {
     private DatabaseHandler databaseHandler;
@@ -31,7 +26,7 @@ public class WarpPlugin extends JavaPlugin {
 
         databaseHandler = new DatabaseHandler(this);
 
-        Result<Void, Exception> result = databaseHandler.connectToDatabase();
+        var result = databaseHandler.connectToDatabase();
         result.ifErr(e -> {
             getLogger().severe("Failed to initialize database: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
@@ -77,7 +72,7 @@ public class WarpPlugin extends JavaPlugin {
             return true;
         }
 
-        String subCommand = args[0].toLowerCase();
+        var subCommand = args[0].toLowerCase();
         switch (subCommand) {
             case "new" -> newWarp(player, args);
             case "remove" -> removeWarp(player, args);
@@ -126,7 +121,7 @@ public class WarpPlugin extends JavaPlugin {
             player.sendMessage(cc.format("<red>Failed to create warp: <gray>" + e.getMessage() + " <red>(connection to database failed)"));
         });
         try (Connection connection = conn.unwrap()) {
-            String sql = "INSERT INTO warps (name, x, y, z, world) VALUES (?, ?, ?, ?, ?)";
+            var sql = "INSERT INTO warps (name, x, y, z, world) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement stmt = connection.prepareStatement(sql)) {
                 stmt.setString(1, name);
                 stmt.setInt(2, (int) Math.round(location.getX()));
@@ -136,8 +131,14 @@ public class WarpPlugin extends JavaPlugin {
                 stmt.executeUpdate();
             }
 
-            player.sendMessage(cc.format("<gray>Warp <dark_aqua>" + name + " <gray>created at <dark_green>" + location.toVector() +
-                    " <gray>in world <dark_purple>" + location.getWorld().getName() + "<gray>."));
+            player.sendMessage(
+                cc.format(
+                    """
+                    <gray>Warp <dark_aqua>%s<gray> created at <dark_green>%s<gray> in world <dark_purple>%s<gray>.
+                    """
+                    .formatted(name, location.toVector(), location.getWorld().getName())
+                )
+            );
         } catch (SQLException e) {
             player.sendMessage(cc.format("<red>Failed to create warp: <gray>" + e.getMessage()));
         }
@@ -161,22 +162,23 @@ public class WarpPlugin extends JavaPlugin {
             return;
         }
 
-        String name = args[1];
+        var name = args[1];
 
-        Result<Connection, Exception> conn = databaseHandler.getConnection();
+        var conn = databaseHandler.getConnection();
         conn.ifErr(e -> {
-            player.sendMessage(cc.format("<red>Failed to remove warp: <gray>" + e.getMessage()
-                + " <red>(connection to database failed)"));
+            var msg = "<red>Failed to remove warp: <gray>" + e.getMessage() + " <red>(connection to database failed)";
+            player.sendMessage(cc.format(msg));
         });
         try (Connection connection = conn.unwrap()) {
-            String sql = "DELETE FROM warps WHERE name = ?";
+            var sql = "DELETE FROM warps WHERE name = ?";
             try (PreparedStatement stmt = connection.prepareStatement(sql)) {
                 stmt.setString(1, name);
-                int rows = stmt.executeUpdate();
-                player.sendMessage(cc.format(
-                        rows > 0 
-                        ? "<gray>Warp <dark_aqua>" + name + " <gray>removed." 
-                        : "<red>No warp found with name <dark_aqua>" + name + "<red>."));
+                var rows = stmt.executeUpdate();
+                var msg = switch (rows) {
+                    case 0 -> "<red>No warp found with name <dark_aqua>" + name + "<red>.";
+                    default -> "<gray>Warp <dark_aqua>" + name + " <gray>removed.";
+                };
+                player.sendMessage(cc.format(msg));
             }
         } catch (SQLException e) {
             player.sendMessage(cc.format("<red>Failed to remove warp: <gray>" + e.getMessage()));
@@ -215,25 +217,30 @@ public class WarpPlugin extends JavaPlugin {
             }
         }
 
-        Result<Connection, Exception> conn = databaseHandler.getConnection();
+        var conn = databaseHandler.getConnection();
         conn.ifErr(e -> {
             player.sendMessage(cc.format("<red>Failed to edit warp: <dark_purple>" + e.getMessage() + "<red> (connection to database failed)"));
             return;
         });
         try (Connection connection = conn.unwrap()) {
-            String sql = "UPDATE warps SET x = ?, y = ?, z = ? WHERE name = ?";
+            var sql = "UPDATE warps SET x = ?, y = ?, z = ? WHERE name = ?";
             try (PreparedStatement stmt = connection.prepareStatement(sql)) {
                 stmt.setDouble(1, location.getX());
                 stmt.setDouble(2, location.getY());
                 stmt.setDouble(3, location.getZ());
                 stmt.setString(4, name);
 
-                int rows = stmt.executeUpdate();
-                player.sendMessage(
-                        rows > 0 
-                        ? cc.format("<gray>Warp <dark_aqua>" + name + "<gray> updated to " 
-                            + "<dark_green>" + location.toVector() + "<gray>.") 
-                        : cc.format("<red>No warp found with name <gray>" + name + "."));
+                var rows = stmt.executeUpdate();
+                var message = switch (rows) {
+                    case 0 -> """
+                             <red>No warp found with name <gray>%s.
+                             """.formatted(name);
+                    default -> """
+                               <gray>Warp <dark_aqua>%s<gray> updated to <dark_green>%s<gray>.
+                               """.formatted(name, location.toVector());
+                };
+
+                player.sendMessage(cc.format(message));
             }
         } catch (SQLException e) {
             player.sendMessage(cc.format("<red>Failed to edit warp: " + e.getMessage()));
@@ -253,10 +260,10 @@ public class WarpPlugin extends JavaPlugin {
             return;
         }
 
-        String name = args[1];
-        Result<Connection, Exception> conn = databaseHandler.getConnection();
-        Connection connection = conn.unwrap();
-        String sql = "SELECT x, y, z, world FROM warps WHERE name = ?";
+        var name = args[1];
+        var conn = databaseHandler.getConnection();
+        var connection = conn.unwrap();
+        var sql = "SELECT x, y, z, world FROM warps WHERE name = ?";
         teleportToWarp(player, name, connection, sql);
     }
 
@@ -274,28 +281,34 @@ public class WarpPlugin extends JavaPlugin {
         return ResultUtils.tryCatch(() -> {
             try (PreparedStatement stmt = connection.prepareStatement(sql)) {
                 stmt.setString(1, name);
-                ResultSet rs = stmt.executeQuery();
+                var rs = stmt.executeQuery();
 
                 if (!rs.next()) {
                     player.sendMessage(cc.format("<red>No warp found with name <dark_aqua>" + name + "<red>."));
                     return null;
                 }
 
-                List<String> axes = Arrays.asList("x", "y", "z");
-                HashMap<String, Double> loc = new HashMap<>();
-
+                var axes = new String[] { "x", "y", "z" };
+                var loc = new HashMap<String, Double>(axes.length);
+                
                 for (String axis : axes) {
                     loc.put(axis, rs.getDouble(axis));
                 }
 
-                String worldName = rs.getString("world");
-                World world = Bukkit.getWorld(worldName);
+                var worldName = rs.getString("world");
+                var world = Bukkit.getWorld(worldName);
 
                 if (world == null) {
-                    player.sendMessage(cc.format("<red>Warp <dark_aqua>" + name + "<red> references an unknown world <dark_purple>" + worldName + "<red>."));
+                    player.sendMessage(
+                        cc.format(
+                            """
+                            <red>Warp <dark_aqua>%s<red> references an unknown world <dark_purple>%s<red>.
+                            """.formatted(name, worldName)
+                        )
+                    );
                     return null;
                 }
-                Location dest = new Location(world, loc.get("x"), loc.get("y"), loc.get("z"));
+                var dest = new Location(world, loc.get("x"), loc.get("y"), loc.get("z"));
                 if (isFolia()) {
                     player.teleportAsync(dest);
                 } else {
@@ -306,7 +319,6 @@ public class WarpPlugin extends JavaPlugin {
             return null;
         });
     }
-
 
     private static boolean isFolia() {
         try {
