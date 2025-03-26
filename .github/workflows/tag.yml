@@ -38,6 +38,7 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-rc-') }}
           fail_on_unmatched_files: true
           draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       url: ${{ steps.release.outputs.url }}
 
