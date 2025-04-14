@@ -19,7 +19,6 @@ public class WarpPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        CommandAPI.onEnable();
         saveDefaultConfig();
         cc = new ChatColor();
 

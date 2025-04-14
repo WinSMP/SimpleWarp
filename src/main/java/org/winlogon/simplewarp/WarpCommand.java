@@ -2,6 +2,10 @@ package org.winlogon.simplewarp;
 
 import dev.jorel.commandapi.annotations.*;
 import dev.jorel.commandapi.annotations.arguments.*;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -32,7 +36,10 @@ public class WarpCommand {
                 stmt.setDouble(4, loc.getZ());
                 stmt.setString(5, loc.getWorld().getName());
             },
-            rows -> player.sendMessage(WarpPlugin.cc.format("<gray>Warp <dark_aqua>%s<gray> created".formatted(name)))
+            rows -> {
+                var warpName = Component.text(name, NamedTextColor.DARK_AQUA);
+                player.sendRichMessage("<gray>Warp <name> created</gray>", Placeholder.component("name", warpName));
+            }
         );
     }
 
@@ -49,7 +56,15 @@ public class WarpCommand {
                 stmt.setDouble(4, z);
                 stmt.setString(5, player.getWorld().getName());
             },
-            rows -> player.sendMessage(WarpPlugin.cc.format("<gray>Warp <dark_aqua>%s<gray> created".formatted(name)))
+            rows -> {
+                var warpName = Component.text(name, NamedTextColor.DARK_AQUA);
+                var coordinates = Component.text("%s %s %s".formatted(x, y, z), NamedTextColor.DARK_GREEN);
+                player.sendRichMessage(
+                    "<gray>Warp <name> created at <coords></gray>",
+                    Placeholder.component("name", warpName),
+                    Placeholder.component("coords", coordinates)
+                );
+            }
         );
     }
 
@@ -60,10 +75,11 @@ public class WarpCommand {
             "DELETE FROM warps WHERE name = ?",
             stmt -> stmt.setString(1, name),
             rows -> {
+                var warpName = Component.text(name, NamedTextColor.DARK_AQUA);
                 if (rows == 0) {
-                    player.sendMessage(WarpPlugin.cc.format("<red>Warp not found: %s".formatted(name)));
+                    player.sendRichMessage("<red>Warp not found: <name></red>", Placeholder.component("name", warpName));
                 } else {
-                    player.sendMessage(WarpPlugin.cc.format("<gray>Warp <dark_aqua>%s<gray> removed".formatted(name)));
+                    player.sendRichMessage("<gray>Warp <name> <red>removed</red></gray>", Placeholder.component("name", warpName));
                 }
             }
         );
@@ -82,10 +98,14 @@ public class WarpCommand {
                 stmt.setString(4, name);
             },
             rows -> {
+                var warpName = Component.text(name, NamedTextColor.DARK_AQUA);
                 if (rows == 0) {
-                    player.sendMessage(WarpPlugin.cc.format("<red>Warp not found: %s".formatted(name)));
+                    player.sendRichMessage("<red>Warp not found: <name></red>", Placeholder.component("name", warpName));
                 } else {
-                    player.sendMessage(WarpPlugin.cc.format("<gray>Warp <dark_aqua>%s<gray> updated".formatted(name)));
+                    player.sendRichMessage(
+                        "<gray>Warp <name> <dark_aqua>updated</dark_aqua></gray>",
+                        Placeholder.component("name", warpName)
+                    );
                 }
             }
         );
@@ -104,10 +124,17 @@ public class WarpCommand {
                 stmt.setString(4, name);
             },
             rows -> {
+                var warpName = Component.text(name, NamedTextColor.DARK_AQUA);
+                var coordinates = Component.text("%s %s %s".formatted(x, y, z), NamedTextColor.DARK_GREEN);
+
                 if (rows == 0) {
-                    player.sendMessage(WarpPlugin.cc.format("<red>Warp not found: %s".formatted(name)));
+                    player.sendRichMessage("<red>Warp not found: <name></red>", Placeholder.component("name", warpName));
                 } else {
-                    player.sendMessage(WarpPlugin.cc.format("<gray>Warp <dark_aqua>%s<gray> updated".formatted(name)));
+                    player.sendRichMessage(
+                        "<gray>Warp <name> <dark_aqua>updated</dark_aqua> at <coords></gray>",
+                        Placeholder.component("name", warpName),
+                        Placeholder.component("coords", coordinates)
+                    );
                 }
             }
         );
@@ -117,14 +144,15 @@ public class WarpCommand {
     public static void teleport(Player player, @AStringArgument String name) {
         var connResult = WarpPlugin.databaseHandler.getConnection();
         connResult.ifErr(e -> {
-            player.sendMessage(WarpPlugin.cc.format("<red>Database error: " + e.getMessage()));
+            player.sendRichMessage("<red>Database error: " + e.getMessage());
         });
         connResult.ifOk(conn -> {
             try (var stmt = conn.prepareStatement("SELECT * FROM warps WHERE name = ?")) {
                 stmt.setString(1, name);
                 var rs = stmt.executeQuery();
+                var warpName = Component.text(name, NamedTextColor.DARK_AQUA);
                 if (!rs.next()) {
-                    player.sendMessage(WarpPlugin.cc.format("<red>Warp not found: %s".formatted(name)));
+                    player.sendRichMessage("<red>Warp not found: </red>", Placeholder.component("name", warpName));
                     return;
                 }
                 var x = rs.getDouble("x");
@@ -133,7 +161,7 @@ public class WarpCommand {
                 var worldName = rs.getString("world");
                 var world = Bukkit.getWorld(worldName);
                 if (world == null) {
-                    player.sendMessage(WarpPlugin.cc.format("<red>Invalid world for warp"));
+                    player.sendRichMessage("<red>Invalid world for warp</red>");
                     return;
                 }
                 var dest = new Location(world, x, y, z);
@@ -142,9 +170,9 @@ public class WarpCommand {
                 } else {
                     player.teleport(dest);
                 }
-                player.sendMessage(WarpPlugin.cc.format("<gray>Teleported to <dark_aqua>%s".formatted(name)));
+                player.sendRichMessage("<gray>Teleported to warp <name> </red>", Placeholder.component("name", warpName));
             } catch (SQLException ex) {
-                player.sendMessage(WarpPlugin.cc.format("<red>Error: " + ex.getMessage()));
+                player.sendRichMessage("<red>Error: " + ex.getMessage());
             }
         });
     }
@@ -153,7 +181,7 @@ public class WarpCommand {
     public static void list(CommandSender sender) {
         var connResult = WarpPlugin.databaseHandler.getConnection();
         connResult.ifErr(e -> {
-            sender.sendMessage(WarpPlugin.cc.format("<red>Database error: " + e.getMessage()));
+            sender.sendRichMessage("<red>Database error: " + e.getMessage());
         });
         connResult.ifOk(conn -> {
             try (var stmt = conn.createStatement();
