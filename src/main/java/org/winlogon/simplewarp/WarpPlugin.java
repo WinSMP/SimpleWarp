@@ -1,6 +1,7 @@
 package org.winlogon.simplewarp;
 
 import org.bukkit.plugin.java.JavaPlugin;
+
 import dev.jorel.commandapi.CommandAPI;
 
 public class WarpPlugin extends JavaPlugin {

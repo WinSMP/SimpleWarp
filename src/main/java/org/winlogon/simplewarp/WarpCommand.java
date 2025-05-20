@@ -2,6 +2,7 @@ package org.winlogon.simplewarp;
 
 import dev.jorel.commandapi.annotations.*;
 import dev.jorel.commandapi.annotations.arguments.*;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -217,7 +218,7 @@ public class WarpCommand {
     }
 
     private static TagResolver coordsComponent(double x, double y, double z) {
-        return Placeholder.component("coords", Component.text("%s %s %s".formatted(x, y, z), NamedTextColor.DARK_GREEN));
+        return Placeholder.component("coords", Component.text(STR."\{x} \{y} \{z}", NamedTextColor.DARK_GREEN));
     }
 
     @FunctionalInterface
