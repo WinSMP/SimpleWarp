@@ -2,8 +2,8 @@ package org.winlogon.simplewarp;
 
 import com.github.walker84837.JResult.Result;
 import com.github.walker84837.JResult.ResultUtils;
-import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -14,11 +14,11 @@ import java.sql.Statement;
  * @author walker84837
  */
 public class DatabaseHandler {
-    private final JavaPlugin plugin;
+    private final File dataFolder;
     private Connection connection;
 
-    public DatabaseHandler(JavaPlugin plugin) {
-        this.plugin = plugin;
+    public DatabaseHandler(File dataFolder) {
+        this.dataFolder = dataFolder;
     }
 
     /**
@@ -28,7 +28,7 @@ public class DatabaseHandler {
      */
     public Result<Void, Exception> connectToDatabase() {
         return ResultUtils.tryCatch(() -> {
-            String url = "jdbc:sqlite:" + plugin.getDataFolder() + "/warps.db";
+            String url = "jdbc:sqlite:" + this.dataFolder + "/warps.db";
             connection = DriverManager.getConnection(url);
             createTableIfNotExists().unwrap();
             return null;

@@ -1,12 +1,12 @@
 package org.winlogon.simplewarp;
 
 import org.bukkit.plugin.java.JavaPlugin;
+
 import dev.jorel.commandapi.CommandAPI;
 
 public class WarpPlugin extends JavaPlugin {
     public static final boolean IS_FOLIA = checkFolia();
     public static DatabaseHandler databaseHandler;
-    public static ChatColor cc;
 
     private static boolean checkFolia() {
         try {
@@ -19,11 +19,9 @@ public class WarpPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        CommandAPI.onEnable();
         saveDefaultConfig();
-        cc = new ChatColor();
 
-        databaseHandler = new DatabaseHandler(this);
+        databaseHandler = new DatabaseHandler(getDataFolder());
         databaseHandler.connectToDatabase().ifErr(e -> {
             getLogger().severe(() -> "Failed to initialize database: " + e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
