@@ -76,7 +76,7 @@ dependencies {
     implementation("com.github.walker84837:JResult:1.3.0")
     testImplementation("io.papermc.paper:paper-api:1.21.5-R0.1-SNAPSHOT")
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.2")
 }
 
 tasks.test {
