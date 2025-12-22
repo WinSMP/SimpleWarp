@@ -43,7 +43,6 @@ repositories {
         url = uri("https://repo.papermc.io/repository/maven-public/")
         content {
             includeModule("io.papermc.paper", "paper-api")
-            includeModule("io.papermc", "paperlib")
             includeModule("net.md-5", "bungeecord-chat")
         }
     }
@@ -70,8 +69,8 @@ repositories {
 }
 
 dependencies {
-    annotationProcessor("dev.jorel:commandapi-paper-annotations:11.0.0")
-    compileOnly("dev.jorel:commandapi-paper-annotations:11.0.0")
+    annotationProcessor("dev.jorel:commandapi-paper-annotations:11.1.0")
+    compileOnly("dev.jorel:commandapi-paper-annotations:11.1.0")
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     implementation("com.github.walker84837:JResult:1.4.0")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
@@ -95,7 +94,7 @@ tasks.processResources {
 
 tasks.shadowJar {
     archiveClassifier.set("")
-    relocate("io.papermc.lib", "shadow.io.papermc.paperlib")
+    relocate("com.github.walker84837", "org.winlogon.shade")
     
     // Preserve CommandAPI and JResult packages
     minimize {
