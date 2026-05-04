@@ -71,9 +71,9 @@ repositories {
 dependencies {
     annotationProcessor("dev.jorel:commandapi-paper-annotations:11.2.0")
     compileOnly("dev.jorel:commandapi-paper-annotations:11.2.0")
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.1.2.build.60-stable")
     implementation("com.github.walker84837:JResult:1.4.0")
-    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testImplementation("io.papermc.paper:paper-api:26.1.2.build.60-stable")
     testImplementation("org.junit.jupiter:junit-jupiter:6.0.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.3")
 }
