@@ -218,7 +218,7 @@ public class WarpCommand {
     }
 
     private static TagResolver coordsComponent(double x, double y, double z) {
-        return Placeholder.component("coords", Component.text(STR."\{x} \{y} \{z}", NamedTextColor.DARK_GREEN));
+        return Placeholder.component("coords", Component.text("%d %d %d".formatted(x, y, z), NamedTextColor.DARK_GREEN));
     }
 
     @FunctionalInterface
