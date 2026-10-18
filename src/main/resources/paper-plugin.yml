@@ -1,0 +1,11 @@
+name: SimpleWarp
+version: '0.3.1'
+main: 'org.winlogon.simplewarp.SimpleWarpPlugin'
+author: winlogon
+api-version: ${API_VERSION}
+description: 'SimpleWarp - A simple /warp plugin'
+folia-supported: true
+permissions:
+  warp.admin:
+    description: Permissions to create, edit and delete warps
+    default: op
