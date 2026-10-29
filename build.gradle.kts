@@ -4,8 +4,8 @@ import java.util.*
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
-    id("com.gradleup.shadow") version "9.3.0"
-    kotlin("jvm") version "2.3.20"
+    alias(libs.plugins.shadow)
+    alias(libs.plugins.kotlin.jvm)
 }
 
 group = "org.winlogon.template"
@@ -55,6 +55,9 @@ kotlin {
     jvmToolchain(25)
 }
 
+// Hosts the winlogon libraries that are not published to Maven Central.
+val winlogonCodeRepository = "https://maven.winlogon.org/releases"
+
 repositories {
     maven {
         name = "papermc"
@@ -73,31 +76,81 @@ repositories {
     }
     maven {
         name = "winlogon-code"
-        url = uri("https://maven.winlogon.org/releases")
+        url = uri(winlogonCodeRepository)
     }
     mavenCentral()
 }
 
+// The artifacts that the Paper plugin loader resolves at server start and hands to the plugin's class path.
+// The version catalog is the single source of truth for their versions.
+val loaderLibraries = listOf(
+    libs.kotlin.stdlib,
+    libs.exposed.core,
+    libs.exposed.dao,
+    libs.exposed.jdbc,
+    libs.sqlite.jdbc,
+    libs.retrohue,
+    libs.asynccraftr,
+)
+
 dependencies {
+    // The server provides the API and the loader-provided libraries at runtime.
     compileOnly(libs.paper.api)
-    compileOnly(libs.retrohue)
-    compileOnly(libs.asynccraftr)
+    compileOnly(libs.kotlin.stdlib)
+    loaderLibraries.forEach {
+        compileOnly(it)
+    }
 
-    implementation(libs.exposed.core)
-    implementation(libs.exposed.dao)
-    implementation(libs.exposed.jdbc)
-    runtimeOnly(libs.sqlite.jdbc)
-
-    // MockBukkit keeps paper-api compileOnly, so the test classpath needs its own copy.
+    // The plugin loader only resolves libraries on a running server; tests instantiate the plugin in-process.
+    testImplementation(libs.kotlin.stdlib)
     testImplementation(libs.paper.api)
-    // Loader.kt resolves these from Maven at server start; tests instantiate the plugin in-process.
-    testImplementation(libs.retrohue)
-    testImplementation(libs.asynccraftr)
-
+    loaderLibraries.forEach {
+        testImplementation(it)
+    }
     testImplementation(libs.mockbukkit)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+// The loader reads the coordinates it has to resolve from a generated descriptor, so that the versions it
+// resolves at server start always match the ones the plugin was compiled against.
+val generatedResources = layout.buildDirectory.dir("generated/resources")
+
+val generateLoaderLibraries by tasks.registering {
+    val outputDirectory = generatedResources
+    val coordinates = loaderLibraries.map { library ->
+        val dependency = library.get()
+        "${dependency.module}:${dependency.versionConstraint.requiredVersion}"
+    }
+
+    // Custom repositories aside Maven Central
+    val repositories = listOf("winlogon-code" to winlogonCodeRepository)
+    inputs.property("coordinates", coordinates)
+    inputs.property("repositories", repositories)
+
+    outputs.dir(outputDirectory)
+
+    doLast {
+        val descriptor = outputDirectory.get().asFile.resolve("loader-libraries.properties")
+        descriptor.parentFile.mkdirs()
+        descriptor.writeText(
+            buildString {
+                coordinates.forEachIndexed { index, coordinate ->
+                    appendLine("loader.dependency.$index=$coordinate")
+                }
+                repositories.forEachIndexed { index, (id, url) ->
+                    appendLine("loader.repository.$index.id=$id")
+                    appendLine("loader.repository.$index.type=default")
+                    appendLine("loader.repository.$index.url=$url")
+                }
+            }
+        )
+    }
+}
+
+sourceSets.main {
+    resources.srcDir(generatedResources)
 }
 
 tasks.test {
@@ -111,6 +164,7 @@ tasks.test {
 
 tasks.processResources {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    dependsOn(generateLoaderLibraries)
     filesMatching("**/paper-plugin.yml") {
         expand(
             "NAME" to pluginName,

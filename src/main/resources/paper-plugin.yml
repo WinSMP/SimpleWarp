@@ -1,6 +1,7 @@
 name: SimpleWarp
 version: '0.3.1'
 main: 'org.winlogon.simplewarp.SimpleWarpPlugin'
+loader: 'org.winlogon.simplewarp.SimpleWarpPluginLoader'
 author: winlogon
 api-version: ${API_VERSION}
 description: 'SimpleWarp - A simple /warp plugin'

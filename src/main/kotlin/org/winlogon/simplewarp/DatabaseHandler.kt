@@ -1,6 +1,8 @@
 package org.winlogon.simplewarp
 
+import org.bukkit.plugin.Plugin
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.exceptions.ExposedSQLException
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -8,7 +10,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.winlogon.asynccraftr.AsyncCraftr
-import org.bukkit.plugin.Plugin
+
 import java.io.File
 import java.sql.DriverManager
 import java.util.concurrent.Callable
@@ -51,7 +53,15 @@ class DatabaseHandler(private val dataFolder: File) {
         })
     }
 
-    fun createWarp(plugin: Plugin, name: String, x: Double, y: Double, z: Double, world: String): CompletableFuture<Warp> {
+    fun createWarp(plugin: Plugin, name: String, x: Double, y: Double, z: Double, world: String): CompletableFuture<Warp?> {
+        val empty = transaction {
+            Warp.find { WarpTable.name eq name.lowercase() }
+        }.empty()
+
+        if (!empty) {
+            return CompletableFuture.completedFuture(null)
+        }
+
         return AsyncCraftr.runAsync(plugin, Callable {
             transaction {
                 Warp.new {

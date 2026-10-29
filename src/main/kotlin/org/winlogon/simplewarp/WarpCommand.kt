@@ -201,7 +201,11 @@ class WarpCommand(private val databaseHandler: DatabaseHandler, private val plug
         databaseHandler.createWarp(plugin, name, x, y, z, player.world.name)
             .thenAcceptAsync { warp ->
                 AsyncCraftr.runSync(plugin, Callable {
-                    player.sendRichMessage("<gray>Warp <name> created at <coords></gray>", nameComponent(name), coordsComponent(x, y, z))
+                    if (warp == null) {
+                        player.sendRichMessage("<red>Warp <name> already exists!</red>", nameComponent(name))
+                    } else {
+                        player.sendRichMessage("<gray>Warp <name> created at <coords>.</gray>", nameComponent(name), coordsComponent(x, y, z))
+                    }
                     null
                 }).join()
             }
