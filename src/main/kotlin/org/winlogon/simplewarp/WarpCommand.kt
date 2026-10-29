@@ -302,7 +302,7 @@ class WarpCommand(private val databaseHandler: DatabaseHandler, private val plug
                             player.sendRichMessage("<red>Invalid world for warp</red>")
                         } else {
                             val dest = Location(world, warp.x, warp.y, warp.z)
-                            if (isFolia()) {
+                            if (AsyncCraftr.isRunningOnFolia()) {
                                 player.teleportAsync(dest)
                             } else {
                                 player.teleport(dest)
@@ -352,15 +352,6 @@ class WarpCommand(private val databaseHandler: DatabaseHandler, private val plug
                 null
             }
         return Command.SINGLE_SUCCESS
-    }
-
-    private fun isFolia(): Boolean {
-        try {
-            Class.forName("io.papermc.paper.threadedregions.RegionizedServer")
-            return true
-        } catch (e: ClassNotFoundException) {
-            return false
-        }
     }
 
     private fun nameComponent(name: String): TagResolver.Single {
