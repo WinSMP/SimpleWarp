@@ -30,15 +30,13 @@ import java.util.concurrent.CompletableFuture
 class WarpCommand(private val databaseHandler: DatabaseHandler, private val plugin: Plugin) {
 
     fun createCommand(): LiteralArgumentBuilder<CommandSourceStack> {
-        val teleport = createTeleportCommand().build()
-
         return Commands.literal("warp")
             .then(createNewCommand())
             .then(createRemoveCommand())
             .then(createEditCommand())
-            .then(teleport)
+            .then(createTeleportCommand("teleport"))
+            .then(createTeleportCommand("tp"))
             .then(createListCommand())
-            .then(Commands.literal("tp").redirect(teleport))
             .executes { context ->
                 val sender = context.source.sender
                 sender.sendRichMessage("<gray>Usage: /warp <new|remove|edit|teleport|tp|list> [args]")
@@ -137,8 +135,8 @@ class WarpCommand(private val databaseHandler: DatabaseHandler, private val plug
             )
     }
 
-    private fun createTeleportCommand(): LiteralArgumentBuilder<CommandSourceStack> {
-        return Commands.literal("teleport")
+    private fun createTeleportCommand(command: String): LiteralArgumentBuilder<CommandSourceStack> {
+        return Commands.literal(command)
             .then(
                 Commands.argument("name", StringArgumentType.word())
                     .suggests(object : SuggestionProvider<CommandSourceStack> {
